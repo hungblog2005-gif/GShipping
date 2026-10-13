@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # g_shipping
 
 A new Flutter project.
@@ -15,3 +16,7 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+# GShipping
+Gshipping vip pro
+>>>>>>> 1d7cf46f027540053e035863831c7b853d74cd6a
