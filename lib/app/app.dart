@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../features/auth/screens/login_screen.dart';
+import '../features/home/screens/main_screen.dart';
+
 
 class GShippingApp extends StatelessWidget {
   const GShippingApp({super.key});
@@ -39,7 +41,7 @@ class AuthGate extends StatelessWidget {
         }
 
         if (snapshot.hasData) {
-          return const HomeScreen();
+          return const MainScreen();
         }
 
         return const LoginScreen();
@@ -48,32 +50,5 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('GShipping'),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-            },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Đăng xuất',
-          ),
-        ],
-      ),
-      body: Center(
-        child: Text(
-          'Xin chào ${user?.displayName ?? user?.email ?? "bạn"}!',
-          style: const TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
+// Delete the old HomeScreen class
