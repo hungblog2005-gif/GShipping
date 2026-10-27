@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,12 +13,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
+  final TextEditingController _searchController = TextEditingController();
+  final Geocoding _geocoding = Geocoding();
   LatLng _currentPin = const LatLng(10.762622, 106.660172);
   bool _isPinned = false;
 
   @override
   void dispose() {
     _mapController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -75,8 +79,50 @@ class _HomeScreenState extends State<HomeScreen> {
       _isPinned = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã ghim vị trí tại điểm ngắm!'), duration: Duration(seconds: 1)),
+      const SnackBar(
+        content: Text('Đã ghim vị trí tại điểm ngắm!'),
+        duration: Duration(seconds: 1),
+      ),
     );
+  }
+
+  Future<void> _searchAddress(String address) async {
+    if (address.trim().isEmpty) return;
+
+    // Tối ưu cho tiếng Việt: Thêm "Việt Nam" để thu hẹp phạm vi tìm kiếm
+    final searchQuery = "${address.trim()}, Việt Nam";
+
+    try {
+      final locations = await _geocoding.locationFromAddress(searchQuery);
+      if (!mounted) return;
+
+      if (locations.isNotEmpty) {
+        final firstLocation = locations.first;
+        final targetLatLng = LatLng(
+          firstLocation.latitude,
+          firstLocation.longitude,
+        );
+
+        setState(() {
+          _currentPin = targetLatLng;
+          _isPinned = true;
+        });
+
+        _mapController.move(targetLatLng, 15.0);
+
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Đã tìm thấy vị trí cho: $address')));
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không tìm thấy địa chỉ này tại Việt Nam. Vui lòng thử lại!'),
+        ),
+      );
+    }
   }
 
   @override
@@ -87,10 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
           // 1. Lớp Bản đồ
           FlutterMap(
             mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _currentPin,
-              initialZoom: 13.0,
-            ),
+            options: MapOptions(initialCenter: _currentPin, initialZoom: 13.0),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -113,6 +156,33 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             ],
           ),
+          // Thanh tìm kiếm địa chỉ (Đặt sau FlutterMap để nằm trên)
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 20,
+            right: 20,
+            child: Material(
+              elevation: 4,
+              borderRadius: BorderRadius.circular(30),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Tìm kiếm địa chỉ...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                ),
+                onSubmitted: (value) {
+                  _searchAddress(value);
+                },
+              ),
+            ),
+          ),
 
           // 2. Lớp Tracker - Sử dụng const để tối ưu performance
           const Center(
@@ -120,11 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: EdgeInsets.only(bottom: 40),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
-                children: [
-                  TrackerDot(),
-                  SizedBox(height: 4),
-                  TrackerLabel(),
-                ],
+                children: [TrackerDot(), SizedBox(height: 4), TrackerLabel()],
               ),
             ),
           ),
