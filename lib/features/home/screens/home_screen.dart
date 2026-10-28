@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import '../widgets/location_details_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   final Geocoding _geocoding = Geocoding();
+  final List<LatLng> _pinnedLocations = [];
   LatLng _currentPin = const LatLng(10.762622, 106.660172);
   bool _isPinned = false;
 
@@ -67,6 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentPin = currentLocation;
       _isPinned = true;
+      _pinnedLocations.add(currentLocation);
     });
 
     _mapController.move(currentLocation, 15.0);
@@ -77,12 +80,23 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _currentPin = center;
       _isPinned = true;
+      _pinnedLocations.add(center);
     });
+    _handleMarkerTap(center);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Đã ghim vị trí tại điểm ngắm!'),
         duration: Duration(seconds: 1),
       ),
+    );
+  }
+
+  void _handleMarkerTap(LatLng point) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => LocationDetailsSheet(location: point),
     );
   }
 
@@ -106,6 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _currentPin = targetLatLng;
           _isPinned = true;
+          _pinnedLocations.add(targetLatLng);
         });
 
         _mapController.move(targetLatLng, 15.0);
@@ -139,20 +154,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.gshipping.app',
               ),
-              if (_isPinned)
+              if (_isPinned || _pinnedLocations.isNotEmpty)
                 MarkerLayer(
-                  markers: [
-                    Marker(
-                      point: _currentPin,
-                      width: 40,
-                      height: 40,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
-                      ),
-                    ),
-                  ],
+                  markers: _pinnedLocations.map((point) => Marker(
+                        point: point,
+                        width: 40,
+                        height: 40,
+                        child: GestureDetector(
+                          onTap: () => _handleMarkerTap(point),
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                        ),
+                      )).toList(),
                 ),
             ],
           ),

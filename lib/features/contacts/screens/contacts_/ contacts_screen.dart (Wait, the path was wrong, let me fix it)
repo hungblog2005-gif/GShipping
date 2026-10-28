@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+import '../services/firestore_customer_service.dart';
+import 'customer_detail_screen.dart';
+import '../models/customer_model.dart';
+
+class ContactsScreen extends StatefulWidget {
+  const ContactsScreen({super.key});
+
+  @override
+  State<ContactsScreen> createState() => _ContactsScreenState();
+}
+
+class _ContactsScreenState extends State<ContactsScreen> {
+  final FirestoreCustomerService _customerService = FirestoreCustomerService();
+  String _searchQuery = '';
+
+  List<Customer> _filterCustomers(List<Customer> customers) {
+    if (_searchQuery.isEmpty) return customers;
+    return customers.where((c) {
+      final query = _searchQuery.toLowerCase();
+      return c.fullName.toLowerCase().contains(query) ||
+          c.phoneNumber.contains(query) ||
+          c.address.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Khách hàng'),
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Tìm tên, SĐT hoặc địa chỉ...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                filled: true,
+                fillColor: Colors.grey[100],
+              ),
+            ),
+          ),
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _customerService.getCustomersStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Không có khách hàng nào'));
+                }
+
+                final customers = snapshot.data!.map((map) => Customer.fromMap(map)).toList();
+                final filteredCustomers = _filterCustomers(customers);
+
+                if (filteredCustomers.isEmpty) {
+                  return const Center(child: Text('Không tìm thấy khách hàng nào'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filteredCustomers.length,
+                  itemBuilder: (context, index) {
+                    final customer = filteredCustomers[index];
+                    return CustomerCard(customer: customer);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class CustomerCard extends StatelessWidget {
+  final Customer customer;
+  const CustomerCard({super.key, required this.customer});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 2,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: CircleAvatar(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          child: Text(
+            customer.fullName.isNotEmpty ? customer.fullName[0].toUpperCase() : '?',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        title: Text(
+          customer.fullName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.phone, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+                Text(customer.phoneNumber, style: const TextStyle(fontSize: 14)),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    customer.address,
+                    style: const TextStyle(fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            if (customer.note != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Note: ${customer.note}',
+                style: const TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.blueGrey),
+              ),
+            ],
+          ],
+        ),
+        trailing: IconButton(
+          // Sửa: Khi click vào card hoặc button này, điều hướng sang màn hình chi tiết
+          icon: const Icon(Icons.chevron_right),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerDetailScreen(customer: customer),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

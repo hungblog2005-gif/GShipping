@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'edit_profile_screen.dart';
+import 'notification_screen.dart';
+import 'security_screen.dart';
+import 'support_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -86,22 +90,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   _buildProfileItem(
                     icon: Icons.person_outline,
                     title: 'Chỉnh sửa thông tin',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const EditProfileScreen()),
+                      );
+                    },
                   ),
                   _buildProfileItem(
                     icon: Icons.notifications_none,
                     title: 'Thông báo',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const NotificationScreen()),
+                      );
+                    },
                   ),
                   _buildProfileItem(
                     icon: Icons.security,
                     title: 'Bảo mật & Mật khẩu',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SecurityScreen()),
+                      );
+                    },
                   ),
                   _buildProfileItem(
                     icon: Icons.help_outline,
                     title: 'Trung tâm hỗ trợ',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const SupportScreen()),
+                      );
+                    },
                   ),
                 ],
               ),

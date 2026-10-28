@@ -1,21 +1,7 @@
 import 'package:flutter/material.dart';
-
-// Model cho khách hàng
-class Customer {
-  final String id;
-  final String fullName;
-  final String phoneNumber;
-  final String address;
-  final String? note;
-
-  Customer({
-    required this.id,
-    required this.fullName,
-    required this.phoneNumber,
-    required this.address,
-    this.note,
-  });
-}
+import '../services/firestore_customer_service.dart';
+import 'customer_detail_screen.dart';
+import '../models/customer_model.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -25,35 +11,18 @@ class ContactsScreen extends StatefulWidget {
 }
 
 class _ContactsScreenState extends State<ContactsScreen> {
-  // Dữ liệu mẫu khách hàng
-  final List<Customer> _customers = [
-    Customer(
-      id: '1',
-      fullName: 'Nguyễn Văn A',
-      phoneNumber: '0901 234 567',
-      address: '123 Đường Lê Lợi, Quận 1, TP.HCM',
-      note: 'Khách quen, thích giao buổi sáng',
-    ),
-    Customer(
-      id: '2',
-      fullName: 'Trần Thị B',
-      phoneNumber: '0912 345 678',
-      address: '456 Đường Nguyễn Huệ, Quận 1, TP.HCM',
-    ),
-    Customer(
-      id: '3',
-      fullName: 'Lê Văn C',
-      phoneNumber: '0988 765 432',
-      address: '789 Đường Cách Mạng Tháng 8, Quận 3, TP.HCM',
-      note: 'Gọi điện trước khi đến 15p',
-    ),
-    Customer(
-      id: '4',
-      fullName: 'Phạm Minh D',
-      phoneNumber: '0977 111 222',
-      address: '101 Đường Võ Văn Kiệt, Quận 5, TP.HCM',
-    ),
-  ];
+  final FirestoreCustomerService _customerService = FirestoreCustomerService();
+  String _searchQuery = '';
+
+  List<Customer> _filterCustomers(List<Customer> customers) {
+    if (_searchQuery.isEmpty) return customers;
+    return customers.where((c) {
+      final query = _searchQuery.toLowerCase();
+      return c.fullName.toLowerCase().contains(query) ||
+          c.phoneNumber.contains(query) ||
+          c.address.toLowerCase().contains(query);
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -61,21 +30,18 @@ class _ContactsScreenState extends State<ContactsScreen> {
       appBar: AppBar(
         title: const Text('Khách hàng'),
         centerTitle: true,
-        actions: [
-          IconButton(
-            onPressed: () {
-              // Logic thêm khách hàng mới
-            },
-            icon: const Icon(Icons.person_add),
-          ),
-        ],
+        elevation: 0,
       ),
       body: Column(
         children: [
-          // Ô tìm kiếm khách hàng
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
               decoration: InputDecoration(
                 hintText: 'Tìm tên, SĐT hoặc địa chỉ...',
                 prefixIcon: const Icon(Icons.search),
@@ -87,15 +53,35 @@ class _ContactsScreenState extends State<ContactsScreen> {
               ),
             ),
           ),
-
-          // Danh sách khách hàng
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _customers.length,
-              itemBuilder: (context, index) {
-                final customer = _customers[index];
-                return CustomerCard(customer: customer);
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _customerService.getCustomersStream(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Center(child: Text('Không có khách hàng nào'));
+                }
+
+                final customers = snapshot.data!.map((map) => Customer.fromMap(map)).toList();
+                final filteredCustomers = _filterCustomers(customers);
+
+                if (filteredCustomers.isEmpty) {
+                  return const Center(child: Text('Không tìm thấy khách hàng nào'));
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filteredCustomers.length,
+                  itemBuilder: (context, index) {
+                    final customer = filteredCustomers[index];
+                    return CustomerCard(customer: customer);
+                  },
+                );
               },
             ),
           ),
@@ -120,7 +106,7 @@ class CustomerCard extends StatelessWidget {
         leading: CircleAvatar(
           backgroundColor: Theme.of(context).colorScheme.primary,
           child: Text(
-            customer.fullName[0].toUpperCase(),
+            customer.fullName.isNotEmpty ? customer.fullName[0].toUpperCase() : '?',
             style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           ),
         ),
@@ -164,9 +150,14 @@ class CustomerCard extends StatelessWidget {
           ],
         ),
         trailing: IconButton(
-          icon: const Icon(Icons.call, color: Colors.green),
+          icon: const Icon(Icons.chevron_right),
           onPressed: () {
-            // Logic gọi điện thoại
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CustomerDetailScreen(customer: customer),
+              ),
+            );
           },
         ),
       ),

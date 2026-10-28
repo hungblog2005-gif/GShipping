@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+
+class NotificationScreen extends StatefulWidget {
+  const NotificationScreen({super.key});
+
+  @override
+  State<NotificationScreen> createState() => _NotificationScreenState();
+}
+
+class _NotificationScreenState extends State<NotificationScreen> {
+  // Giả lập trạng thái thông báo (trong thực tế sẽ lưu vào Firestore/SharedPrefs)
+  Map<String, bool> _notificationSettings = {
+    'new_shift': true,        // Thông báo ca làm mới
+    'shift_reminder': true,  // Nhắc nhở ca làm
+    'system_alert': true,     // Thông báo hệ thống
+    'message_alert': false,   // Thông báo tin nhắn
+  };
+
+  void _toggleNotification(String key) {
+    setState(() {
+      _notificationSettings[key] = !(_notificationSettings[key] ?? false);
+    });
+    // Tại đây có thể gọi API cập nhật cài đặt thông báo lên Firebase
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cài đặt thông báo'),
+        centerTitle: true,
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text(
+            'Quản lý cách bạn nhận thông báo từ GShipping',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+
+          _buildNotificationTile(
+            'new_shift',
+            'Ca làm mới',
+            'Nhận thông báo khi có ca làm việc mới phù hợp.',
+          ),
+          _buildNotificationTile(
+            'shift_reminder',
+            'Nhắc nhở ca làm',
+            'Nhắc nhở bạn trước khi ca làm bắt đầu 1 giờ.',
+          ),
+          _buildNotificationTile(
+            'system_alert',
+            'Thông báo hệ thống',
+            'Nhận các tin tức và cập nhật từ GShipping.',
+          ),
+          _buildNotificationTile(
+            'message_alert',
+            'Thông báo tin nhắn',
+            'Thông báo khi có tin nhắn mới từ điều phối viên.',
+          ),
+
+          const SizedBox(height: 32),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade200),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.blue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Một số thông báo quan trọng sẽ luôn được gửi đến bạn bất kể cài đặt này.',
+                    style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotificationTile(String key, String title, String subtitle) {
+    return SwitchListTile(
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+      ),
+      subtitle: Text(subtitle),
+      value: _notificationSettings[key] ?? false,
+      onChanged: (bool value) {
+        _toggleNotification(key);
+      },
+      activeColor: Theme.of(context).colorScheme.primary,
+    );
+  }
+}
