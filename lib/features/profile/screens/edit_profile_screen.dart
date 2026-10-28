@@ -26,10 +26,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (user == null) return;
 
     try {
-      // 1. Lấy tên từ FirebaseAuth
       _nameController.text = user.displayName ?? '';
 
-      // 2. Lấy số điện thoại từ Firestore collection 'users'
       DocumentSnapshot userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
@@ -52,11 +50,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       if (user != null) {
-        // 1. Cập nhật displayName trong Firebase Auth
         await user.updateDisplayName(_nameController.text);
         await user.updateProfile();
 
-        // 2. Cập nhật thông tin bổ sung trong Firestore
         await FirebaseFirestore.instance
             .collection('users')
             .doc(user.uid)
@@ -86,12 +82,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Chỉnh sửa thông tin'),
+        title: const Text(
+          'Chỉnh sửa thông tin',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFF0F172A),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
@@ -100,25 +103,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Center(
                 child: Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 60,
-                      backgroundColor: Colors.grey[300],
-                      child: const Icon(Icons.person, size: 60, color: Colors.white),
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 4),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: const Color(0xFFE2E8F0),
+                        child: const Icon(Icons.person, size: 60, color: Color(0xFF64748B)),
+                      ),
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: CircleAvatar(
-                        radius: 18,
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        child: IconButton(
-                          // Ở đây có thể tích hợp chọn ảnh từ gallery
-                          icon: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Tính năng thay đổi ảnh đang phát triển')),
-                            );
-                          },
+                      child: GestureDetector(
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Tính năng thay đổi ảnh đang phát triển')),
+                          );
+                        },
+                        child: CircleAvatar(
+                          radius: 18,
+                          backgroundColor: const Color(0xFF2563EB),
+                          child: const Icon(Icons.camera_alt, size: 18, color: Colors.white),
                         ),
                       ),
                     ),
@@ -128,15 +143,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const SizedBox(height: 32),
               const Text(
                 'Thông tin cá nhân',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _nameController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Họ và Tên',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.person, color: Color(0xFF64748B)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Vui lòng nhập họ tên';
@@ -147,10 +176,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: 'Số điện thoại',
-                  prefixIcon: Icon(Icons.phone),
-                  border: OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.phone, color: Color(0xFF64748B)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) return 'Vui lòng nhập số điện thoại';
@@ -164,12 +203,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveProfile,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isLoading
-                    ? const CircularProgressIndicator()
-                    : const Text('Lưu thông tin', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        'Lưu thông tin',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
                 ),
               ),
             ],

@@ -34,11 +34,11 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy'),
+            child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+            child: const Text('Xóa', style: TextStyle(color: Color(0xFFB91C1C), fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -82,7 +82,6 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
   }
 
   void _showCustomerSelectionDialog() async {
-    // Load toàn bộ khách hàng trước khi hiển thị dialog
     await _searchCustomerByPhone('');
 
     showDialog(
@@ -91,7 +90,12 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: const Text('Tìm & Chọn khách hàng'),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                'Tìm & Chọn khách hàng',
+                style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 child: Column(
@@ -99,10 +103,20 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                   children: [
                     TextField(
                       controller: _phoneSearchController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nhập SĐT khách hàng',
-                        prefixIcon: Icon(Icons.phone),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.phone, color: Color(0xFF64748B)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onChanged: (value) {
                         _searchCustomerByPhone(value, onUpdate: setStateDialog);
@@ -111,7 +125,12 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                     const SizedBox(height: 16),
                     Flexible(
                       child: _searchedCustomers.isEmpty
-                          ? const Center(child: Text('Không tìm thấy khách hàng nào'))
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Text('Không tìm thấy khách hàng nào', style: TextStyle(color: Color(0xFF64748B))),
+                              ),
+                            )
                           : ListView.builder(
                               shrinkWrap: true,
                               itemCount: _searchedCustomers.length,
@@ -121,9 +140,13 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                                 final isSelected = _selectedCustomerIds.contains(id);
 
                                 return CheckboxListTile(
-                                  title: Text(customer['fullName']),
-                                  subtitle: Text(customer['phoneNumber']),
+                                  title: Text(
+                                    customer['fullName'],
+                                    style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
+                                  ),
+                                  subtitle: Text(customer['phoneNumber'], style: const TextStyle(color: Color(0xFF64748B))),
                                   value: isSelected,
+                                  activeColor: const Color(0xFF2563EB),
                                   onChanged: (val) {
                                     setState(() {
                                       if (val == true) {
@@ -142,16 +165,26 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
+                ),
                 ElevatedButton(
                   onPressed: () {
                     if (_selectedCustomerIds.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng chọn ít nhất một khách hàng')));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Vui lòng chọn ít nhất một khách hàng')),
+                      );
                       return;
                     }
                     Navigator.pop(context);
                     _showMapWithSelectedCustomers();
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   child: const Text('Xem bản đồ'),
                 ),
               ],
@@ -190,9 +223,9 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'confirmed': return Colors.green;
-      case 'pending': return Colors.orange;
-      case 'completed': return Colors.blueGrey;
+      case 'confirmed': return const Color(0xFF15803D); // Success Green
+      case 'pending': return const Color(0xFFB45309); // Warning Amber
+      case 'completed': return const Color(0xFF64748B); // Slate
       default: return Colors.grey;
     }
   }
@@ -204,18 +237,26 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
     final timeFormat = DateFormat('HH:mm');
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Chi tiết ca làm'),
+        title: const Text(
+          'Chi tiết ca làm',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFF0F172A),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
+            icon: const Icon(Icons.delete, color: Color(0xFFB91C1C)),
             onPressed: _handleDelete,
             tooltip: 'Xóa ca làm',
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -223,9 +264,9 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(shift.status).withOpacity(0.2),
+                  color: _getStatusColor(shift.status).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _getStatusColor(shift.status)),
+                  border: Border.all(color: _getStatusColor(shift.status), width: 1),
                 ),
                 child: Text(
                   _getStatusText(shift.status),
@@ -253,7 +294,10 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
                 icon: const Icon(Icons.map),
                 label: const Text('Tìm khách hàng & Xem bản đồ'),
                 style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
@@ -268,19 +312,26 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[100],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[300]!),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: [
-          Icon(icon, color: Colors.blueGrey, size: 24),
+          Icon(icon, color: const Color(0xFF64748B), size: 24),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+              Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF64748B))),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
             ],
           ),
         ],

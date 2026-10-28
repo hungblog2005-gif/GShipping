@@ -5,8 +5,13 @@ import '../../contacts/services/firestore_customer_service.dart';
 
 class LocationDetailsSheet extends StatefulWidget {
   final LatLng location;
+  final VoidCallback onDeletePin;
 
-  const LocationDetailsSheet({super.key, required this.location});
+  const LocationDetailsSheet({
+    super.key,
+    required this.location,
+    required this.onDeletePin,
+  });
 
   @override
   State<LocationDetailsSheet> createState() => _LocationDetailsSheetState();
@@ -32,12 +37,6 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
       _formKey.currentState!.save();
 
       try {
-        debugPrint('--- Bắt đầu lưu khách hàng ---');
-        debugPrint('Name: ${_nameController.text.trim()}');
-        debugPrint('Phone: ${_phoneController.text.trim()}');
-        debugPrint('Address: ${_addressController.text.trim()}');
-        debugPrint('Location: ${widget.location.latitude}, ${widget.location.longitude}');
-
         await _customerService.addCustomer(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
@@ -45,26 +44,20 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
           location: widget.location,
         );
 
-        debugPrint('--- Lưu thành công lên Firestore! ---');
-
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Đã lưu khách hàng lên Firestore thành công!'),
-            backgroundColor: Colors.green,
+            backgroundColor: Color(0xFF15803D),
           ),
         );
         Navigator.pop(context);
-      } catch (e, stacktrace) {
-        debugPrint('--- LỖI LƯU DỮ LIỆU ---');
-        debugPrint('Error: $e');
-        debugPrint('StackTrace: $stacktrace');
-
+      } catch (e) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Lỗi lưu dữ liệu: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            backgroundColor: const Color(0xFFB91C1C),
           ),
         );
       }
@@ -74,7 +67,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
@@ -86,129 +79,116 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Handle bar cho BottomSheet
               Center(
                 child: Container(
                   width: 50,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: const Color(0xFFE2E8F0),
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
               const SizedBox(height: 25),
-              const Text(
-                'Thêm Khách Hàng Mới',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Thêm Khách Hàng Mới',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      widget.onDeletePin();
+                      Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.delete_outline, color: Color(0xFFB91C1C)),
+                    tooltip: 'Xóa ghim này',
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               Text(
                 'Vui lòng nhập thông tin khách hàng cho vị trí này',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                style: TextStyle(fontSize: 14, color: const Color(0xFF64748B)),
               ),
               const SizedBox(height: 25),
 
-              // Field: Họ Tên
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
                   labelText: 'Họ và Tên',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF64748B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: const Color(0xFFF8FAFC),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập họ tên';
-                  }
-                  return null;
-                },
+                validator: (value) => (value == null || value.trim().isEmpty) ? 'Vui lòng nhập họ tên' : null,
               ),
               const SizedBox(height: 16),
-
-              // Field: Số Điện Thoại
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
                   labelText: 'Số điện thoại',
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF64748B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: const Color(0xFFF8FAFC),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập số điện thoại';
-                  }
-                  if (value.length < 10) {
-                    return 'Số điện thoại không hợp lệ';
-                  }
+                  if (value == null || value.trim().isEmpty) return 'Vui lòng nhập số điện thoại';
+                  if (value.length < 10) return 'Số điện thoại không hợp lệ';
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-
-              // Field: Địa chỉ
               TextFormField(
                 controller: _addressController,
                 decoration: InputDecoration(
                   labelText: 'Địa chỉ chi tiết',
-                  prefixIcon: const Icon(Icons.location_on_outlined),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  prefixIcon: const Icon(Icons.location_on_outlined, color: Color(0xFF64748B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor: const Color(0xFFF8FAFC),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Vui lòng nhập địa chỉ';
-                  }
-                  return null;
-                },
+                validator: (value) => (value == null || value.trim().isEmpty) ? 'Vui lòng nhập địa chỉ' : null,
               ),
               const SizedBox(height: 20),
-
-              // Thông tin tọa độ (Read-only)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: const Color(0xFFEFF6FF),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[100]!),
+                  border: Border.all(color: const Color(0xFFDBEAFE)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.map, color: Colors.blue, size: 20),
+                    const Icon(Icons.map, color: Color(0xFF2563EB), size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'Tọa độ: ${widget.location.latitude.toStringAsFixed(5)}, ${widget.location.longitude.toStringAsFixed(5)}',
-                        style: const TextStyle(fontSize: 13, color: Colors.blueGrey),
+                        style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(height: 30),
-
-              // Nút Lưu
               SizedBox(
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[700],
+                    backgroundColor: const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
                   ),
                   onPressed: _submitForm,
                   child: const Text(

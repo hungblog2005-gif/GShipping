@@ -3,6 +3,7 @@ import 'home_screen.dart';
 import '../../contacts/screens/contacts_screen.dart';
 import '../../shifts/screens/shifts_screen.dart';
 import '../../profile/screens/profile_screen.dart';
+import '../../../shared/widgets/custom_bottom_nav.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -21,6 +22,13 @@ class _MainScreenState extends State<MainScreen> {
     const ProfileScreen(),
   ];
 
+  final List<BottomNavItem> _navItems = [
+    BottomNavItem(icon: Icons.map, label: 'Bản đồ'),
+    BottomNavItem(icon: Icons.people, label: 'Khách hàng'),
+    BottomNavItem(icon: Icons.calendar_month, label: 'Ca làm việc'),
+    BottomNavItem(icon: Icons.person, label: 'Cá nhân'),
+  ];
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -34,28 +42,10 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: _pages,
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
+      bottomNavigationBar: CustomBottomNav(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.map),
-            label: 'Bản đồ',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people),
-            label: 'Khách hàng',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Ca làm việc',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Cá nhân',
-          ),
-        ],
+        items: _navItems,
       ),
     );
   }

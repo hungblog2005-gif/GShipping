@@ -64,12 +64,6 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   }
 
   void _viewOnMap() {
-    // Vì Customer model hiện tại không lưu tọa độ trực tiếp (chỉ có trong Firestore),
-    // ta cần lấy lại dữ liệu từ service để có latitude/longitude.
-    // Để đơn giản và nhanh, ta truyền khách hàng này vào CustomerMapScreen.
-    // Tuy nhiên, CustomerMapScreen mong đợi List<Map<String, dynamic>>.
-
-    // Lấy dữ liệu từ Firestore để có tọa độ
     _customerService.getCustomers().then((allCustomers) {
       final customerData = allCustomers.firstWhere((c) => c['id'] == widget.customer.id);
       Navigator.push(
@@ -84,11 +78,19 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Chi tiết khách hàng'),
+        title: const Text(
+          'Chi tiết khách hàng',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        ),
+        centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFF0F172A),
         actions: [
           IconButton(
-            icon: Icon(_isEditing ? Icons.close : Icons.edit),
+            icon: Icon(_isEditing ? Icons.close : Icons.edit, color: const Color(0xFF2563EB)),
             onPressed: () {
               setState(() {
                 _isEditing = !_isEditing;
@@ -98,39 +100,55 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                child: Text(
-                  widget.customer.fullName.isNotEmpty ? widget.customer.fullName[0].toUpperCase() : '?',
-                  style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                ),
+              child: Column(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: const Color(0xFF2563EB),
+                    child: Text(
+                      widget.customer.fullName.isNotEmpty ? widget.customer.fullName[0].toUpperCase() : '?',
+                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.customer.fullName,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
             _buildInfoField('Họ và Tên', _nameController),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildInfoField('Số điện thoại', _phoneController),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildInfoField('Địa chỉ', _addressController),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             _buildInfoField('Ghi chú', _noteController),
-            const SizedBox(height: 32),
+            const SizedBox(height: 40),
             if (_isEditing)
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _updateCustomer,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Lưu thay đổi'),
+                  child: const Text('Lưu thay đổi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 ),
               )
             else
@@ -141,8 +159,14 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
                   icon: const Icon(Icons.map),
                   label: const Text('Xem địa chỉ trên bản đồ'),
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF2563EB),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFFE2E8F0)),
+                    ),
                   ),
                 ),
               ),
@@ -158,28 +182,45 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            fontSize: 14,
+            color: Color(0xFF64748B),
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 8),
         _isEditing
             ? TextField(
                 controller: controller,
                 decoration: InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                  ),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  // contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               )
             : Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.grey[100],
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 child: Text(
                   controller.text,
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ),
       ],

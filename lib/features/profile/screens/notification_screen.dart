@@ -26,18 +26,25 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Cài đặt thông báo'),
+        title: const Text(
+          'Cài đặt thông báo',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFF0F172A),
       ),
       body: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         children: [
           const Text(
             'Quản lý cách bạn nhận thông báo từ GShipping',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
 
           _buildNotificationTile(
             'new_shift',
@@ -64,18 +71,22 @@ class _NotificationScreenState extends State<NotificationScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: const Color(0xFFF0F9FF),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue.shade200),
+              border: Border.all(color: const Color(0xFFBAE6FD)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Colors.blue),
+                const Icon(Icons.info_outline, color: Color(0xFF0369A1)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Một số thông báo quan trọng sẽ luôn được gửi đến bạn bất kể cài đặt này.',
-                    style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: const Color(0xFF0C4A6E),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -87,17 +98,32 @@ class _NotificationScreenState extends State<NotificationScreen> {
   }
 
   Widget _buildNotificationTile(String key, String title, String subtitle) {
-    return SwitchListTile(
-      title: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
-      subtitle: Text(subtitle),
-      value: _notificationSettings[key] ?? false,
-      onChanged: (bool value) {
-        _toggleNotification(key);
-      },
-      activeColor: Theme.of(context).colorScheme.primary,
+      child: SwitchListTile(
+        title: Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+        subtitle: Text(
+          subtitle,
+          style: const TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+        ),
+        value: _notificationSettings[key] ?? false,
+        onChanged: (bool value) {
+          _toggleNotification(key);
+        },
+        activeColor: const Color(0xFF2563EB),
+      ),
     );
   }
 }

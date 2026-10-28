@@ -8,6 +8,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'shift_detail_screen.dart';
 import 'customer_map_screen.dart';
 import '../models/shift_model.dart';
+import 'package:g_shipping/shared/widgets/animated_card.dart';
 
 class ShiftsScreen extends StatefulWidget {
   const ShiftsScreen({super.key});
@@ -21,34 +22,30 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
   final FirestoreCustomerService _customerService = FirestoreCustomerService();
   String _selectedFilter = 'all'; // 'all', 'today', 'tomorrow', 'this_week'
 
-  // State cho tìm kiếm khách hàng
   final TextEditingController _phoneSearchController = TextEditingController();
-  // Sử dụng Map<String, dynamic> để tránh lỗi import model nếu chưa khớp
   List<Map<String, dynamic>> _searchedCustomers = [];
   Set<String> _selectedCustomerIds = {};
 
-  // Tính toán màu sắc trạng thái dựa trên thời gian thực
   Color _getStatusColor(String status, Shift shift) {
     final now = DateTime.now();
     if (now.isAfter(shift.startTime) && now.isBefore(shift.endTime)) {
-      return Colors.blue; // Đang thực hiện
+      return const Color(0xFF2563EB); // Active Blue
     } else if (now.isAfter(shift.endTime)) {
-      return Colors.blueGrey; // Đã hoàn thành
+      return const Color(0xFF64748B); // Completed Slate
     }
 
     switch (status) {
       case 'confirmed':
-        return Colors.green;
+        return const Color(0xFF15803D); // Success Green
       case 'pending':
-        return Colors.orange;
+        return const Color(0xFFB45309); // Warning Amber
       case 'completed':
-        return Colors.blueGrey;
+        return const Color(0xFF64748B); // Slate
       default:
         return Colors.grey;
     }
   }
 
-  // Tính toán text trạng thái dựa trên thời gian thực
   String _getStatusText(String status, Shift shift) {
     final now = DateTime.now();
     if (now.isAfter(shift.startTime) && now.isBefore(shift.endTime)) {
@@ -69,7 +66,6 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     }
   }
 
-  // Hàm tìm kiếm khách hàng theo SĐT
   Future<void> _searchCustomerByPhone(String phone) async {
     if (phone.isEmpty) {
       setState(() {
@@ -88,7 +84,6 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     }
   }
 
-  // Hàm hiển thị chọn khách hàng
   void _showCustomerSelectionDialog() {
     showDialog(
       context: context,
@@ -96,7 +91,12 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: const Text('Tìm & Chọn khách hàng'),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                'Tìm & Chọn khách hàng',
+                style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+              ),
               content: SizedBox(
                 width: double.maxFinite,
                 child: Column(
@@ -104,20 +104,35 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                   children: [
                     TextField(
                       controller: _phoneSearchController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Nhập SĐT khách hàng',
-                        prefixIcon: Icon(Icons.phone),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.phone, color: Color(0xFF64748B)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onChanged: (value) {
                         _searchCustomerByPhone(value);
-                        setState(() {}); // Update UI để hiện danh sách tìm kiếm
+                        setState(() {});
                       },
                     ),
                     const SizedBox(height: 16),
                     Flexible(
                       child: _searchedCustomers.isEmpty
-                          ? const Center(child: Text('Không tìm thấy khách hàng nào'))
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Text('Không tìm thấy khách hàng nào', style: TextStyle(color: Color(0xFF64748B))),
+                              ),
+                            )
                           : ListView.builder(
                               shrinkWrap: true,
                               itemCount: _searchedCustomers.length,
@@ -127,9 +142,13 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                                 final isSelected = _selectedCustomerIds.contains(id);
 
                                 return CheckboxListTile(
-                                  title: Text(customer['fullName']),
-                                  subtitle: Text(customer['phoneNumber']),
+                                  title: Text(
+                                    customer['fullName'],
+                                    style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
+                                  ),
+                                  subtitle: Text(customer['phoneNumber'], style: const TextStyle(color: Color(0xFF64748B))),
                                   value: isSelected,
+                                  activeColor: const Color(0xFF2563EB),
                                   onChanged: (val) {
                                     setState(() {
                                       if (val == true) {
@@ -148,7 +167,10 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
+                ),
                 ElevatedButton(
                   onPressed: () {
                     if (_selectedCustomerIds.isEmpty) {
@@ -158,6 +180,11 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                     Navigator.pop(context);
                     _showMapWithSelectedCustomers();
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   child: const Text('Xem bản đồ'),
                 ),
               ],
@@ -168,7 +195,6 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     );
   }
 
-  // Hàm điều hướng sang màn hình bản đồ
   void _showMapWithSelectedCustomers() async {
     List<Map<String, dynamic>> selectedData = [];
     final allCustomers = await _customerService.getCustomers();
@@ -221,17 +247,33 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: const Text('Đăng ký ca làm mới'),
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text(
+                'Đăng ký ca làm mới',
+                style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     TextField(
                       controller: locationController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Địa điểm',
                         hintText: 'Nhập địa chỉ ca làm...',
-                        prefixIcon: Icon(Icons.location_on),
+                        prefixIcon: const Icon(Icons.location_on, color: Color(0xFF64748B)),
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -239,8 +281,13 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                       children: [
                         Expanded(
                           child: TextButton.icon(
-                            icon: const Icon(Icons.calendar_today),
+                            icon: const Icon(Icons.calendar_today, size: 18),
                             label: Text(DateFormat('dd/MM HH:mm').format(selectedStart)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF0F172A),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
                             onPressed: () async {
                               final picked = await showDatePicker(
                                 context: context,
@@ -263,12 +310,17 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Icon(Icons.arrow_forward),
+                        const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF64748B)),
                         const SizedBox(width: 8),
                         Expanded(
                           child: TextButton.icon(
-                            icon: const Icon(Icons.calendar_today),
+                            icon: const Icon(Icons.calendar_today, size: 18),
                             label: Text(DateFormat('dd/MM HH:mm').format(selectedEnd)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: const Color(0xFF0F172A),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
                             onPressed: () async {
                               final picked = await showDatePicker(
                                 context: context,
@@ -296,7 +348,10 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                 ),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Hủy', style: TextStyle(color: Color(0xFF64748B))),
+                ),
                 ElevatedButton(
                   onPressed: () async {
                     if (locationController.text.isEmpty) {
@@ -316,6 +371,11 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi tạo ca: $e')));
                     }
                   },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
                   child: const Text('Tạo ca'),
                 ),
               ],
@@ -329,13 +389,19 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text('Ca làm việc'),
+        title: const Text(
+          'Ca làm việc',
+          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        ),
         centerTitle: true,
         elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: const Color(0xFF0F172A),
         actions: [
           IconButton(
-            icon: const Icon(Icons.map),
+            icon: const Icon(Icons.map, color: Color(0xFF2563EB)),
             onPressed: _showCustomerSelectionDialog,
             tooltip: 'Tìm khách hàng và xem bản đồ',
           ),
@@ -345,7 +411,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -365,17 +431,17 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
             stream: _shiftService.getShiftsStream(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Expanded(child: Center(child: CircularProgressIndicator()));
+                return const Expanded(child: Center(child: CircularProgressIndicator(color: Color(0xFF2563EB))));
               }
               if (snapshot.hasError) {
-                return Expanded(child: Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}')));
+                return Expanded(child: Center(child: Text('Lỗi tải dữ liệu: ${snapshot.error}', style: const TextStyle(color: Color(0xFFB91C1C)))));
               }
               if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                return const Expanded(child: Center(child: Text('Chưa có ca làm việc nào')));
+                return const Expanded(child: Center(child: Text('Chưa có ca làm việc nào', style: TextStyle(color: Color(0xFF64748B)))));
               }
 
               final allShifts = snapshot.data!.map((map) => Shift.fromMap(map)).toList();
-              final filteredShifts = _filterHiftsByTime(allShifts); // Note: fixed typo from _filterShiftsByTime below
+              final filteredShifts = _filterShiftsByTime(allShifts);
 
               final upcomingShifts = filteredShifts.where((s) => s.startTime.isAfter(DateTime.now())).toList();
               final completedShifts = filteredShifts.where((s) => s.startTime.isBefore(DateTime.now())).toList();
@@ -385,10 +451,12 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 20),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.primaryContainer,
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                        color: const Color(0xFFEFF6FF), // primaryTint
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFDBEAFE)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -400,7 +468,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                     ),
                     Expanded(
                       child: ListView(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(20),
                         children: [
                           if (upcomingShifts.isNotEmpty) ...[
                             const SectionHeader(title: 'Ca sắp tới'),
@@ -411,7 +479,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                             )),
                           ],
                           if (upcomingShifts.isEmpty && completedShifts.isEmpty)
-                            const Center(child: Padding(padding: EdgeInsets.all(20.0), child: Text('Không có ca nào trong khoảng thời gian này'))),
+                            const Center(child: Padding(padding: EdgeInsets.all(40.0), child: Text('Không có ca nào trong khoảng thời gian này', style: TextStyle(color: Color(0xFF64748B))))),
                           const SizedBox(height: 24),
                           if (completedShifts.isNotEmpty) ...[
                             const SectionHeader(title: 'Lịch sử ca làm'),
@@ -433,14 +501,14 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddShiftDialog,
-        label: const Text('Đăng ký ca mới'),
+        label: const Text('Đăng ký ca mới', style: TextStyle(fontWeight: FontWeight.w600)),
         icon: const Icon(Icons.add),
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white,
+        elevation: 2,
       ),
     );
   }
-
-  // Fix the typo in the function call above
-  List<Shift> _filterHiftsByTime(List<Shift> shifts) => _filterShiftsByTime(shifts);
 
   Widget _buildFilterChip(String filter, String label) {
     final isSelected = _selectedFilter == filter;
@@ -450,10 +518,16 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
       onSelected: (selected) {
         setState(() { _selectedFilter = filter; });
       },
-      selectedColor: Theme.of(context).colorScheme.primary,
+      selectedColor: const Color(0xFF2563EB),
+      backgroundColor: Colors.white,
       labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.black,
+        color: isSelected ? Colors.white : const Color(0xFF64748B),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0)),
       ),
     );
   }
@@ -461,8 +535,8 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
   Widget _buildSummaryItem(String label, String value) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(fontSize: 14)),
+        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, color: Color(0xFF0F172A))),
+        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
       ],
     );
   }
@@ -475,7 +549,14 @@ class SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12, left: 4),
-      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFF0F172A),
+        ),
+      ),
     );
   }
 }
@@ -491,8 +572,12 @@ class ShiftCard extends StatelessWidget {
     final timeFormat = DateFormat('HH:mm');
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      color: Colors.white,
       child: InkWell(
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ShiftDetailScreen(shift: shift))),
         borderRadius: BorderRadius.circular(12),
@@ -502,11 +587,20 @@ class ShiftCard extends StatelessWidget {
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(
+                  color: statusColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
                 child: Column(
                   children: [
-                    Text(dateFormat.format(shift.startTime), style: const TextStyle(fontWeight: FontWeight.bold)),
-                    Text(timeFormat.format(shift.startTime), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    Text(
+                      dateFormat.format(shift.startTime),
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                    ),
+                    Text(
+                      timeFormat.format(shift.startTime),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                    ),
                   ],
                 ),
               ),
@@ -515,13 +609,19 @@ class ShiftCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(shift.location, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text(
+                      shift.location,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                    ),
                     const SizedBox(height: 4),
                     Row(
                       children: [
-                        const Icon(Icons.access_time, size: 14, color: Colors.grey),
+                        const Icon(Icons.access_time, size: 14, color: Color(0xFF64748B)),
                         const SizedBox(width: 4),
-                        Text('${timeFormat.format(shift.startTime)} - ${timeFormat.format(shift.endTime)}', style: const TextStyle(color: Colors.grey)),
+                        Text(
+                          '${timeFormat.format(shift.startTime)} - ${timeFormat.format(shift.endTime)}',
+                          style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+                        ),
                       ],
                     ),
                   ],
@@ -529,8 +629,14 @@ class ShiftCard extends StatelessWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(20)),
-                child: Text(statusText, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  statusText,
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),

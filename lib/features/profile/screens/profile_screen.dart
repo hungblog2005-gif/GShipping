@@ -4,6 +4,7 @@ import 'edit_profile_screen.dart';
 import 'notification_screen.dart';
 import 'security_screen.dart';
 import 'support_screen.dart';
+import 'package:g_shipping/shared/widgets/animated_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -181,18 +182,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     required String title,
     required VoidCallback onTap,
   }) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
-      ),
-      child: ListTile(
-        leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-        title: Text(title, style: const TextStyle(fontSize: 15)),
-        trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-        onTap: onTap,
+    return AnimatedCard(
+      onTap: onTap,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Color(0xFFE2E8F0)),
+        ),
+        child: ListTile(
+          leading: Icon(icon, color: const Color(0xFF2563EB)),
+          title: Text(title, style: const TextStyle(fontSize: 15, color: Color(0xFF0F172A))),
+          trailing: const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
+          onTap: null, // Handle by AnimatedCard
+        ),
       ),
     );
   }

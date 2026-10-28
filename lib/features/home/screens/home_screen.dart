@@ -96,7 +96,20 @@ class _HomeScreenState extends State<HomeScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => LocationDetailsSheet(location: point),
+      builder: (context) => LocationDetailsSheet(
+        location: point,
+        onDeletePin: () {
+          setState(() {
+            _pinnedLocations.remove(point);
+            if (_pinnedLocations.isEmpty) {
+              _isPinned = false;
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã xóa ghim vị trí')),
+          );
+        },
+      ),
     );
   }
 
@@ -222,18 +235,22 @@ class _HomeScreenState extends State<HomeScreen> {
                   heroTag: 'btn_location',
                   onPressed: _determinePosition,
                   mini: true,
+                  elevation: 2,
                   backgroundColor: Colors.white,
-                  child: const Icon(Icons.my_location, color: Colors.blue),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.my_location, color: Color(0xFF2563EB)),
                 ),
                 const SizedBox(height: 12),
                 FloatingActionButton(
                   heroTag: 'btn_pin',
                   onPressed: _pinTrackerPosition,
                   mini: true,
+                  elevation: 2,
                   backgroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: Icon(
                     _isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                    color: _isPinned ? Colors.red : Colors.blue,
+                    color: _isPinned ? const Color(0xFFB91C1C) : const Color(0xFF2563EB),
                   ),
                 ),
               ],
