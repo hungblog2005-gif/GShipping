@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../../contacts/services/i_customer_service.dart';
 import '../../contacts/services/firestore_customer_service.dart';
 
@@ -24,6 +28,10 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
   final TextEditingController _addressController = TextEditingController();
   final ICustomerService _customerService = FirestoreCustomerService();
 
+  List<File> _imageFiles = [];
+  final ImagePicker _picker = ImagePicker();
+  bool _isSubmitting = false;
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -32,22 +40,57 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
     super.dispose();
   }
 
+  Future<String> _uploadToCloudinary(File file) async {
+    const String cloudName = 'dbbliokko';
+    const String uploadPreset = 'gshipping_preset';
+
+    final url = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+
+    final request = http.MultipartRequest('POST', url)
+      ..fields['upload_preset'] = uploadPreset
+      ..files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    final response = await request.send();
+
+    if (response.statusCode == 200) {
+      final responseData = await response.stream.bytesToString();
+      final Map<String, dynamic> json = jsonDecode(responseData);
+      return json['secure_url'];
+    } else {
+      throw Exception('Failed to upload image to Cloudinary');
+    }
+  }
+
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
+      if (_isSubmitting) return; // Ngăn chặn nhấn nhiều lần
+
+      setState(() {
+        _isSubmitting = true;
+      });
+
       _formKey.currentState!.save();
 
       try {
+        List<String> imageUrls = [];
+
+        for (var file in _imageFiles) {
+          final uploadedUrl = await _uploadToCloudinary(file);
+          imageUrls.add(uploadedUrl);
+        }
+
         await _customerService.addCustomer(
           name: _nameController.text.trim(),
           phone: _phoneController.text.trim(),
           address: _addressController.text.trim(),
           location: widget.location,
+          imageUrls: imageUrls,
         );
 
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Đã lưu khách hàng lên Firestore thành công!'),
+            content: Text('Đã lưu khách hàng và ảnh thành công!'),
             backgroundColor: Color(0xFF15803D),
           ),
         );
@@ -60,8 +103,29 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
             backgroundColor: const Color(0xFFB91C1C),
           ),
         );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSubmitting = false;
+          });
+        }
       }
     }
+  }
+
+  Future<void> _pickImage() async {
+    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      setState(() {
+        _imageFiles.add(File(pickedFile.path));
+      });
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _imageFiles.removeAt(index);
+    });
   }
 
   @override
@@ -91,7 +155,7 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               ),
               const SizedBox(height: 25),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween         ,
                 children: [
                   const Text(
                     'Thêm Khách Hàng Mới',
@@ -115,6 +179,66 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
               Text(
                 'Vui lòng nhập thông tin khách hàng cho vị trí này',
                 style: TextStyle(fontSize: 14, color: const Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 25),
+
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _imageFiles.length + 1,
+                  itemBuilder: (context, index) {
+                    if (index == _imageFiles.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: GestureDetector(
+                          onTap: _pickImage,
+                          child: Container(
+                            width: 100,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                            ),
+                            child: const Icon(Icons.add_a_photo_outlined, color: Color(0xFF64748B), size: 30),
+                          ),
+                        ),
+                      );
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(12),
+                              image: DecorationImage(
+                                image: FileImage(_imageFiles[index]),
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => _removeImage(index),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.red,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.close, size: 16, color: Colors.white),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 25),
 
@@ -185,16 +309,25 @@ class _LocationDetailsSheetState extends State<LocationDetailsSheet> {
                 height: 55,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2563EB),
+                    backgroundColor: _isSubmitting ? Colors.grey : const Color(0xFF2563EB),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
-                  onPressed: _submitForm,
-                  child: const Text(
-                    'LƯU KHÁCH HÀNG',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  onPressed: _isSubmitting ? null : _submitForm,
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 3,
+                          ),
+                        )
+                      : const Text(
+                          'LƯU KHÁCH HÀNG',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
               const SizedBox(height: 10),

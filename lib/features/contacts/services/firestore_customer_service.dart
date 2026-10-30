@@ -12,6 +12,7 @@ class FirestoreCustomerService implements ICustomerService {
     required String phone,
     required String address,
     required LatLng location,
+    List<String>? imageUrls,
   }) async {
     try {
       await _db.collection(_collection).add({
@@ -20,6 +21,7 @@ class FirestoreCustomerService implements ICustomerService {
         'address': address,
         'latitude': location.latitude,
         'longitude': location.longitude,
+        'imageUrls': imageUrls,
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {

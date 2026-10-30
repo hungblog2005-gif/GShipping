@@ -9,6 +9,7 @@ abstract class ICustomerService {
     required String phone,
     required String address,
     required LatLng location,
+    List<String>? imageUrls,
   });
 
   /// Lấy danh sách tất cả khách hàng

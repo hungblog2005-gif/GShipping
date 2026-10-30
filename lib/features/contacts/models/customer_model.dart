@@ -6,6 +6,7 @@ class Customer {
   final String phoneNumber;
   final String address;
   final String? note;
+  final List<String>? imageUrls;
 
   Customer({
     required this.id,
@@ -13,6 +14,7 @@ class Customer {
     required this.phoneNumber,
     required this.address,
     this.note,
+    this.imageUrls,
   });
 
   factory Customer.fromMap(Map<String, dynamic> map) {
@@ -22,6 +24,7 @@ class Customer {
       phoneNumber: map['phoneNumber'] ?? '',
       address: map['address'] ?? '',
       note: map['note'],
+      imageUrls: map['imageUrls'] != null ? List<String>.from(map['imageUrls']) : null,
     );
   }
 }

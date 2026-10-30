@@ -107,14 +107,7 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
             Center(
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: const Color(0xFF2563EB),
-                    child: Text(
-                      widget.customer.fullName.isNotEmpty ? widget.customer.fullName[0].toUpperCase() : '?',
-                      style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
-                    ),
-                  ),
+                  _buildImageGallery(),
                   const SizedBox(height: 16),
                   Text(
                     widget.customer.fullName,
@@ -172,6 +165,49 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> {
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildImageGallery() {
+    final images = widget.customer.imageUrls;
+    if (images == null || images.isEmpty) {
+      return CircleAvatar(
+        radius: 50,
+        backgroundColor: const Color(0xFF2563EB),
+        child: Text(
+          widget.customer.fullName.isNotEmpty ? widget.customer.fullName[0].toUpperCase() : '?',
+          style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        shrinkWrap: true,
+        itemCount: images.length,
+        itemBuilder: (context, index) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                images[index],
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 100,
+                  height: 100,
+                  color: const Color(0xFFF1F5F9),
+                  child: const Icon(Icons.broken_image, color: Color(0xFFCBD5E1)),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

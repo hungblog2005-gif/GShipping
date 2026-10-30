@@ -14,6 +14,8 @@ class ContactsScreen extends StatefulWidget {
 class _ContactsScreenState extends State<ContactsScreen> {
   final FirestoreCustomerService _customerService = FirestoreCustomerService();
   String _searchQuery = '';
+  bool _isSelectionMode = false;
+  final Set<String> _selectedCustomerIds = {};
 
   List<Customer> _filterCustomers(List<Customer> customers) {
     if (_searchQuery.isEmpty) return customers;
@@ -25,51 +27,106 @@ class _ContactsScreenState extends State<ContactsScreen> {
     }).toList();
   }
 
+  Future<void> _deleteSelectedCustomers() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận xóa'),
+        content: Text('Bạn có chắc chắn muốn xóa ${_selectedCustomerIds.length} khách hàng đã chọn?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Hủy')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        for (var id in _selectedCustomerIds) {
+          await _customerService.deleteCustomer(id);
+        }
+        setState(() {
+          _isSelectionMode = false;
+          _selectedCustomerIds.clear();
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã xóa các khách hàng được chọn!')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi xóa: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
-        title: const Text(
-          'Khách hàng',
-          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+        title: Text(
+          _isSelectionMode ? 'Chọn khách hàng' : 'Khách hàng',
+          style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: const Color(0xFF0F172A),
+        actions: [
+          if (_isSelectionMode)
+            IconButton(
+              icon: const Icon(Icons.delete_sweep, color: Colors.red),
+              onPressed: _deleteSelectedCustomers,
+              tooltip: 'Xóa các mục đã chọn',
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.select_all),
+              onPressed: () {
+                setState(() {
+                  _isSelectionMode = true;
+                });
+              },
+              tooltip: 'Chọn nhiều khách hàng',
+            ),
+        ],
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: TextField(
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value;
-                });
-              },
-              decoration: InputDecoration(
-                hintText: 'Tìm tên, SĐT hoặc địa chỉ...',
-                hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
-                prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
-                filled: true,
-                fillColor: Colors.white,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          if (!_isSelectionMode)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: TextField(
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Tìm tên, SĐT hoặc địa chỉ...',
+                  hintStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                  prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
+                  filled: true,
+                  fillColor: Colors.white,
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF2563EB), width: 2),
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),
             ),
-          ),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _customerService.getCustomersStream(),
@@ -111,7 +168,20 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   itemCount: filteredCustomers.length,
                   itemBuilder: (context, index) {
                     final customer = filteredCustomers[index];
-                    return CustomerCard(customer: customer);
+                    return CustomerCard(
+                      customer: customer,
+                      isSelectionMode: _isSelectionMode,
+                      isSelected: _selectedCustomerIds.contains(customer.id),
+                      onSelected: (selected) {
+                        setState(() {
+                          if (selected) {
+                            _selectedCustomerIds.add(customer.id);
+                          } else {
+                            _selectedCustomerIds.remove(customer.id);
+                          }
+                        });
+                      },
+                    );
                   },
                 );
               },
@@ -125,37 +195,60 @@ class _ContactsScreenState extends State<ContactsScreen> {
 
 class CustomerCard extends StatelessWidget {
   final Customer customer;
-  const CustomerCard({super.key, required this.customer});
+  final bool isSelectionMode;
+  final bool isSelected;
+  final ValueChanged<bool> onSelected;
+
+  const CustomerCard({
+    super.key,
+    required this.customer,
+    required this.isSelectionMode,
+    required this.isSelected,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedCard(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CustomerDetailScreen(customer: customer),
-          ),
-        );
+        if (isSelectionMode) {
+          onSelected(!isSelected);
+        } else {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CustomerDetailScreen(customer: customer),
+            ),
+          );
+        }
       },
       child: Card(
         margin: const EdgeInsets.only(bottom: 12),
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFFE2E8F0)),
+          side: BorderSide(
+            color: isSelected ? const Color(0xFF2563EB) : const Color(0xFFE2E8F0),
+            width: isSelected ? 2 : 1,
+          ),
         ),
-        color: Colors.white,
+        color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
         child: ListTile(
           contentPadding: const EdgeInsets.all(16),
-          leading: CircleAvatar(
-            radius: 24,
-            backgroundColor: const Color(0xFF2563EB),
-            child: Text(
-              customer.fullName.isNotEmpty ? customer.fullName[0].toUpperCase() : '?',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-          ),
+          leading: isSelectionMode
+              ? Checkbox(
+                  value: isSelected,
+                  onChanged: (val) => onSelected(val ?? false),
+                  activeColor: const Color(0xFF2563EB),
+                )
+              : CircleAvatar(
+                  radius: 24,
+                  backgroundColor: const Color(0xFF2563EB),
+                  child: Text(
+                    customer.fullName.isNotEmpty ? customer.fullName[0].toUpperCase() : '?',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
           title: Text(
             customer.fullName,
             style: const TextStyle(
@@ -206,7 +299,7 @@ class CustomerCard extends StatelessWidget {
               ],
             ],
           ),
-          trailing: const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
+          trailing: isSelectionMode ? null : const Icon(Icons.chevron_right, color: Color(0xFF64748B)),
         ),
       ),
     );
