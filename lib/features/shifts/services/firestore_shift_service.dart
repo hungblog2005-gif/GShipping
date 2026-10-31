@@ -47,6 +47,7 @@ class FirestoreShiftService implements IShiftService {
     required DateTime endTime,
     required String location,
     required LatLng locationCoord,
+    List<String>? customerIds,
     String status = 'pending',
   }) async {
     try {
@@ -57,6 +58,7 @@ class FirestoreShiftService implements IShiftService {
         'latitude': locationCoord.latitude,
         'longitude': locationCoord.longitude,
         'status': status,
+        'customerIds': customerIds ?? [],
         'createdAt': FieldValue.serverTimestamp(),
       });
     } catch (e) {

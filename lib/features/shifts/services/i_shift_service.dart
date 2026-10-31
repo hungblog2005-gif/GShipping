@@ -14,6 +14,7 @@ abstract class IShiftService {
     required DateTime endTime,
     required String location,
     required LatLng locationCoord,
+    List<String>? customerIds,
     String status = 'pending',
   });
 

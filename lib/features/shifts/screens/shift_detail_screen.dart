@@ -21,9 +21,49 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
   final FirestoreShiftService _shiftService = FirestoreShiftService();
   final FirestoreCustomerService _customerService = FirestoreCustomerService();
 
+  late final Future<List<Map<String, dynamic>>> _shiftCustomersFuture;
   final TextEditingController _phoneSearchController = TextEditingController();
   List<Map<String, dynamic>> _searchedCustomers = [];
   Set<String> _selectedCustomerIds = {};
+  late String _currentStatus;
+  bool _isUpdatingStatus = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStatus = widget.shift.status;
+    _shiftCustomersFuture = widget.shift.customerIds.isEmpty
+        ? Future.value([])
+        : _customerService.getCustomers();
+  }
+
+  Future<void> _markShiftCompleted() async {
+    setState(() {
+      _isUpdatingStatus = true;
+    });
+
+    try {
+      await _shiftService.updateShiftStatus(widget.shift.id, 'completed');
+      if (!mounted) return;
+      setState(() {
+        _currentStatus = 'completed';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã cập nhật ca làm thành hoàn thành')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi cập nhật trạng thái ca làm: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUpdatingStatus = false;
+        });
+      }
+    }
+  }
 
   Future<void> _handleDelete() async {
     bool confirm = await showDialog(
@@ -264,14 +304,14 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(shift.status).withOpacity(0.1),
+                  color: _getStatusColor(_currentStatus).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _getStatusColor(shift.status), width: 1),
+                  border: Border.all(color: _getStatusColor(_currentStatus), width: 1),
                 ),
                 child: Text(
-                  _getStatusText(shift.status),
+                  _getStatusText(_currentStatus),
                   style: TextStyle(
-                    color: _getStatusColor(shift.status),
+                    color: _getStatusColor(_currentStatus),
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
                   ),
@@ -286,7 +326,35 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
             _buildDetailItem(Icons.location_on, 'Địa điểm', shift.location),
             const SizedBox(height: 16),
             _buildDetailItem(Icons.fingerprint, 'Mã ca làm', shift.id),
+            const SizedBox(height: 24),
+            _buildShiftCustomers(),
             const SizedBox(height: 40),
+            if (_currentStatus != 'completed')
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: _isUpdatingStatus ? null : _markShiftCompleted,
+                  icon: _isUpdatingStatus
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline),
+                  label: Text(_isUpdatingStatus ? 'Đang cập nhật...' : 'Hoàn thành ca làm'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF15803D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            if (_currentStatus != 'completed') const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -305,6 +373,76 @@ class _ShiftDetailScreenState extends State<ShiftDetailScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildShiftCustomers() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Khách hàng đã đăng ký',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+        ),
+        const SizedBox(height: 12),
+        FutureBuilder<List<Map<String, dynamic>>>(
+          future: _shiftCustomersFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: Color(0xFF2563EB)));
+            }
+            if (snapshot.hasError) {
+              return Text(
+                'Lỗi tải danh sách khách hàng: ${snapshot.error}',
+                style: const TextStyle(color: Color(0xFFB91C1C)),
+              );
+            }
+
+            final customersById = {
+              for (final customer in snapshot.data ?? [])
+                customer['id']?.toString() ?? '': customer,
+            };
+            if (widget.shift.customerIds.isEmpty) {
+              return const Text('Ca làm này chưa có khách hàng.', style: TextStyle(color: Color(0xFF64748B)));
+            }
+
+            return Column(
+              children: widget.shift.customerIds.map((id) {
+                final customer = customersById[id];
+                final name = customer?['fullName']?.toString();
+                final phone = customer?['phoneNumber']?.toString() ?? '';
+                final address = customer?['address']?.toString() ?? '';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: const BorderSide(color: Color(0xFFE2E8F0)),
+                  ),
+                  color: Colors.white,
+                  child: ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Color(0xFFEFF6FF),
+                      child: Icon(Icons.person, color: Color(0xFF2563EB)),
+                    ),
+                    title: Text(
+                      name ?? 'Khách hàng không còn trong danh sách đã lưu',
+                      style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
+                    ),
+                    subtitle: name == null
+                        ? null
+                        : Text(
+                            [phone, address].where((value) => value.isNotEmpty).join('\n'),
+                            style: const TextStyle(color: Color(0xFF64748B)),
+                          ),
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
     );
   }
 

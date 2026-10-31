@@ -6,6 +6,7 @@ class Shift {
   final DateTime endTime;
   final String location;
   final String status; // 'pending', 'confirmed', 'completed'
+  final List<String> customerIds;
 
   Shift({
     required this.id,
@@ -13,6 +14,7 @@ class Shift {
     required this.endTime,
     required this.location,
     required this.status,
+    this.customerIds = const [],
   });
 
   factory Shift.fromMap(Map<String, dynamic> map) {
@@ -22,6 +24,7 @@ class Shift {
       endTime: _parseDateTime(map['endTime']),
       location: map['location'] ?? '',
       status: map['status'] ?? 'pending',
+      customerIds: List<String>.from(map['customerIds'] ?? []),
     );
   }
 
@@ -39,6 +42,7 @@ class Shift {
       'status': status,
       'startTime': startTime,
       'endTime': endTime,
+      'customerIds': customerIds,
     };
   }
 }

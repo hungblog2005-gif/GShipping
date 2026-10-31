@@ -4,6 +4,8 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import '../widgets/location_details_sheet.dart';
+import '../../contacts/services/firestore_customer_service.dart';
+import '../../contacts/models/customer_model.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
   final TextEditingController _searchController = TextEditingController();
   final Geocoding _geocoding = Geocoding();
+  final FirestoreCustomerService _customerService = FirestoreCustomerService();
   final List<LatLng> _pinnedLocations = [];
   LatLng _currentPin = const LatLng(10.762622, 106.660172);
   bool _isPinned = false;
@@ -91,13 +94,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _handleMarkerTap(LatLng point) {
+  void _handleMarkerTap(LatLng point, {Customer? customer}) {
+    // Nếu không có customer truyền vào, thử tìm xem có khách hàng nào tại vị trí này không
+    if (customer == null) {
+      // Tìm trong danh sách khách hàng hiện tại (từ StreamBuilder)
+      // Tuy nhiên vì _handleMarkerTap nằm ngoài StreamBuilder, ta không có list khách hàng ở đây.
+      // Cách tốt nhất là truyền customer từ marker tap.
+    }
+
+    print('DEBUG: _handleMarkerTap called with customer: ${customer?.fullName}');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => LocationDetailsSheet(
         location: point,
+        customer: customer,
         onDeletePin: () {
           setState(() {
             _pinnedLocations.remove(point);
@@ -159,31 +171,77 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Stack(
         children: [
           // 1. Lớp Bản đồ
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(initialCenter: _currentPin, initialZoom: 13.0),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.gshipping.app',
-              ),
-              if (_isPinned || _pinnedLocations.isNotEmpty)
-                MarkerLayer(
-                  markers: _pinnedLocations.map((point) => Marker(
-                        point: point,
-                        width: 40,
-                        height: 40,
-                        child: GestureDetector(
-                          onTap: () => _handleMarkerTap(point),
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 40,
+          StreamBuilder<List<Map<String, dynamic>>>(
+            stream: _customerService.getCustomersStream(),
+            builder: (context, snapshot) {
+              List<Customer> customers = [];
+              if (snapshot.hasData) {
+                customers = snapshot.data!.map((map) => Customer.fromMap(map)).toList();
+              }
+
+              return FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(initialCenter: _currentPin, initialZoom: 13.0),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.gshipping.app',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      // Markers cho khách hàng đã lưu
+                      ...customers.map((customer) {
+                        final location = LatLng(customer.latitude, customer.longitude);
+                        return Marker(
+                          point: location,
+                          width: 40,
+                          height: 40,
+                          child: GestureDetector(
+                            onTap: () {
+                              print('DEBUG: Marker tap for customer: ${customer.fullName}');
+                              _handleMarkerTap(location, customer: customer);
+                            },
+                            child: const Icon(
+                              Icons.person_pin_circle,
+                              color: Colors.blue,
+                              size: 40,
+                            ),
                           ),
-                        ),
-                      )).toList(),
-                ),
-            ],
+                        );
+                      }),
+                      // Markers cho các điểm ghim tạm thời
+                      ..._pinnedLocations.map((point) {
+                        // TÌM KIẾM: Kiểm tra xem điểm ghim đỏ này có trùng với khách hàng nào đã lưu không
+                        final matchingCustomer = customers.firstWhere(
+                          (c) => (c.latitude - point.latitude).abs() < 0.0001 &&
+                                 (c.longitude - point.longitude).abs() < 0.0001,
+                          orElse: () => Customer(id: '', fullName: '', phoneNumber: '', address: '', latitude: 0, longitude: 0),
+                        );
+
+                        final hasCustomer = matchingCustomer.id.isNotEmpty;
+
+                        return Marker(
+                          point: point,
+                          width: 40,
+                          height: 40,
+                          child: GestureDetector(
+                            onTap: () => _handleMarkerTap(
+                              point,
+                              customer: hasCustomer ? matchingCustomer : null
+                            ),
+                            child: Icon(
+                              Icons.location_on,
+                              color: hasCustomer ? Colors.blue : Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
           // Thanh tìm kiếm địa chỉ (Đặt sau FlutterMap để nằm trên)
           Positioned(

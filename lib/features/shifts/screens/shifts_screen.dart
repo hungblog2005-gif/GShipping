@@ -240,6 +240,8 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     final TextEditingController locationController = TextEditingController();
     DateTime selectedStart = DateTime.now().add(const Duration(days: 1));
     DateTime selectedEnd = DateTime.now().add(const Duration(days: 1, hours: 4));
+    final customersFuture = _customerService.getCustomers();
+    final selectedCustomerIds = <String>{};
 
     showDialog(
       context: context,
@@ -247,16 +249,16 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
+              scrollable: true,
               backgroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               title: const Text(
                 'Đăng ký ca làm mới',
                 style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
                     TextField(
                       controller: locationController,
                       decoration: InputDecoration(
@@ -344,8 +346,65 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                         ),
                       ],
                     ),
-                  ],
-                ),
+                    const SizedBox(height: 16),
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Khách hàng trong ca',
+                        style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FutureBuilder<List<Map<String, dynamic>>>(
+                      future: customersFuture,
+                      builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return const Center(child: CircularProgressIndicator(color: Color(0xFF2563EB)));
+                          }
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text('Lỗi tải khách hàng: ${snapshot.error}', style: const TextStyle(color: Color(0xFFB91C1C))),
+                            );
+                          }
+                          final customers = snapshot.data ?? [];
+                          if (customers.isEmpty) {
+                            return const Center(
+                              child: Text('Chưa có khách hàng đã lưu', style: TextStyle(color: Color(0xFF64748B))),
+                            );
+                          }
+
+                          return Column(
+                            children: customers.map((customer) {
+                              final id = customer['id']?.toString() ?? '';
+                              if (id.isEmpty) return const SizedBox.shrink();
+
+                              return CheckboxListTile(
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  customer['fullName']?.toString() ?? 'Khách hàng',
+                                  style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Text(
+                                  customer['phoneNumber']?.toString() ?? '',
+                                  style: const TextStyle(color: Color(0xFF64748B)),
+                                ),
+                                value: selectedCustomerIds.contains(id),
+                                activeColor: const Color(0xFF2563EB),
+                                onChanged: (selected) {
+                                  setStateDialog(() {
+                                    if (selected == true) {
+                                      selectedCustomerIds.add(id);
+                                    } else {
+                                      selectedCustomerIds.remove(id);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          );
+                      },
+                    ),
+                ],
               ),
               actions: [
                 TextButton(
@@ -364,6 +423,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                         endTime: selectedEnd,
                         location: locationController.text,
                         locationCoord: const LatLng(10.762622, 106.660172),
+                        customerIds: selectedCustomerIds.toList(),
                       );
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đăng ký ca làm thành công!')));

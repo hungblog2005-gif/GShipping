@@ -68,6 +68,18 @@ class _ContactsScreenState extends State<ContactsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close, color: Color(0xFF64748B)),
+                onPressed: () {
+                  setState(() {
+                    _isSelectionMode = false;
+                    _selectedCustomerIds.clear();
+                  });
+                },
+                tooltip: 'Hủy chọn',
+              )
+            : null,
         title: Text(
           _isSelectionMode ? 'Chọn khách hàng' : 'Khách hàng',
           style: const TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
